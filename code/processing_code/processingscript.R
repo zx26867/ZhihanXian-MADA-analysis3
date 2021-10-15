@@ -8,10 +8,11 @@
 library(readxl) #for loading Excel files
 library(dplyr) #for data processing
 library(here) #to set paths
+library(tidyverse)
 
 #path to data
 #note the use of the here() package and not absolute paths
-data_location <- here::here("data","raw_data","exampledata.xlsx")
+data_location <- here::here("data","raw_data","SympAct_Any_Pos.Rda")
 
 #load data. 
 #note that for functions that come from specific packages (instead of base R)
@@ -19,7 +20,12 @@ data_location <- here::here("data","raw_data","exampledata.xlsx")
 #package::function() that's not required one could just call the function
 #specifying the package makes it clearer where the function "lives",
 #but it adds typing. You can do it either way.
-rawdata <- readxl::read_excel(data_location)
+rawdata <- readRDS(data_location)
+
+rawdata = rawdata %>% select(!contains("DxName") & !contains("Activity") & 
+                               !contains("Score") & !contains("Total") & 
+                               !contains("FluA") & !contains("FluB") & !contains("Unique.Visit"))
+rawdata = rawdata %>% drop_na()
 
 #take a look at the data
 dplyr::glimpse(rawdata)
@@ -47,9 +53,7 @@ print(rawdata)
 # this is one way of doing it. Note that if the data gets updated, 
 # we need to decide if the thresholds are ok (newborns could be <50)
 
-processeddata <- rawdata %>% dplyr::filter( Height != "sixty" ) %>% 
-                             dplyr::mutate(Height = as.numeric(Height)) %>% 
-                             dplyr::filter(Height > 50 & Weight < 1000)
+processeddata <- rawdata 
 
 # save data as RDS
 # I suggest you save your processed and cleaned data as RDS or RDA/Rdata files. 
