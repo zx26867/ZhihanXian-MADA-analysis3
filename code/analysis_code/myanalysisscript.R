@@ -28,11 +28,11 @@ tidy(lm_fit)
 glm_mod <- logistic_reg() %>% set_engine("glm")
 
 # fitting model with 1 continuous outcome and 1 major predictor
-lm_fit <- glm_mod %>% fit(Weakness ~ RunnyNose, data = mydata)
+lm_fit <- glm_mod %>% fit(CoughYN ~ RunnyNose, data = mydata)
 tidy(lm_fit)
 
 # fitting model with 1 continuous outcome and all predictors I chose
-lm_fit <- glm_mod %>% fit(Weakness ~ RunnyNose + Headache + Sneeze + CoughYN + Fatigue + ChestCongestion + BodyTemp, data = mydata)
+lm_fit <- glm_mod %>% fit(CoughYN ~ RunnyNose + Headache + Sneeze + Weakness + Fatigue + ChestCongestion + BodyTemp, data = mydata)
 tidy(lm_fit)
 
 # save fit results table  
