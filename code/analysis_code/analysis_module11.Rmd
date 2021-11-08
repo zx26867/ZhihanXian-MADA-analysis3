@@ -1,0 +1,222 @@
+---
+title: "analysis_module11"
+author: "Zhihan Xian"
+date: "11/7/2021"
+output: html_document
+---
+
+
+```{r}
+#load needed packages. make sure they are installed.
+library(readxl) #for loading Excel files
+library(dplyr) #for data processing
+library(here) #to set paths
+library(tidyverse)
+library(ggplot2)
+library(tidymodels)
+library(rpart.plot)
+library(rpart)
+library(vip)
+library(glmnet)
+library(ranger)
+
+#path to data
+data_location <- here::here("data","processed_data","processeddata_m11.rds")
+
+#load data. 
+mydata <- readRDS(data_location)
+mydata = mydata %>% drop_na()
+
+# This enables the analysis to be reproducible when random numbers are used 
+set.seed(123)
+# Put 3/4 of the data into the training set
+data_split <- initial_split(mydata, prop = 7/10, strata = BodyTemp)
+
+# Create data frames for the two sets:
+train_data <- training(data_split)
+test_data  <- testing(data_split)
+
+set.seed(123)
+folds <- vfold_cv(train_data, v = 5, repeats = 5, strata = BodyTemp)
+folds
+
+# receipe for model with all predictors
+data_rec <- recipe(BodyTemp ~ ., data = train_data) %>% step_dummy(all_nominal())
+
+#RMSE for training set:
+train_data_copy = train_data
+train_data_copy$pred_by_null = mean(train_data_copy$BodyTemp)
+train_data_copy %>% rmse(truth=BodyTemp,pred_by_null)
+
+#RMSE for testing set:
+test_data_copy = test_data
+test_data_copy$pred_by_null = mean(test_data_copy$BodyTemp)
+test_data_copy %>% rmse(truth=BodyTemp,pred_by_null)
+
+################## decision tree model  #################
+tune_spec <- 
+  decision_tree(
+    cost_complexity = tune(),
+    tree_depth = tune()
+  ) %>% 
+  set_engine("rpart") %>% 
+  set_mode("regression")
+
+tune_spec
+
+tree_grid <- grid_regular(cost_complexity(),
+                          tree_depth(),
+                          levels = 5)
+
+tree_grid
+
+#tree_grid %>% count(tree_depth)
+
+set.seed(123)
+cv_folds <- vfold_cv(train_data)
+
+set.seed(123)
+
+tree_wf <- workflow() %>%
+  add_model(tune_spec) %>%
+  add_recipe(data_rec)
+
+tree_res <- 
+  tree_wf %>% 
+  tune_grid(
+    resamples = cv_folds,
+    grid = tree_grid
+    )
+
+tree_res
+
+a = tree_res %>% collect_metrics()
+tree_res %>% autoplot()
+
+best_tree <- tree_res %>% select_best("rmse")
+
+best_tree
+
+final_wf <- tree_wf %>% finalize_workflow(best_tree)
+
+final_fit <- final_wf %>% fit(train_data) 
+
+df <- final_fit %>% augment(train_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
+df$id <- seq.int(nrow(df))
+ggplot() + geom_smooth(data = df, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df, aes(x = id, y = .pred), color = "red")
+# blue curve is the actual, red curve is predicted
+
+ggplot(df, aes(x = id, y = residue)) + geom_point()
+# residue plots, clearly shows a pattern, which is not good
+
+a = a %>% filter(.metric=="rmse") %>% arrange(mean)
+a
+# best model rmse is 1.19, std is 0.0498, the null model rmse is 1.22, std = 0. Thus, the model is not that useful.
+
+
+############# LASSO model ##############
+
+lr_mod <- linear_reg(penalty = tune(), mixture = 1) %>% set_engine("glmnet") %>% set_mode("regression")
+
+lr_workflow <- workflow() %>% add_model(lr_mod) %>% add_recipe(data_rec)
+
+lr_reg_grid <- tibble(penalty = 10^seq(-4, -1, length.out = 30))
+
+lr_res <- 
+  lr_workflow %>% 
+  tune_grid(resamples = cv_folds,
+            grid = lr_reg_grid,
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(rmse))
+
+b = lr_res %>% collect_metrics()
+lr_res %>% autoplot()
+
+best_lr <- lr_res %>% select_best("rmse")
+
+best_lr
+
+final_wf_lr <- lr_workflow %>% finalize_workflow(best_lr)
+
+final_fit_lr <- final_wf_lr %>% fit(train_data) 
+
+df_lr <- final_fit_lr %>% augment(train_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
+df_lr$id <- seq.int(nrow(df_lr))
+ggplot() + geom_smooth(data = df_lr, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df_lr, aes(x = id, y = .pred), color = "red")
+# blue curve is the actual, red curve is predicted
+
+ggplot(df_lr, aes(x = id, y = residue)) + geom_point()
+# residue plots, clearly shows a pattern, which is not good
+
+b = b %>% filter(.metric=="rmse") %>% arrange(mean)
+b
+# best model rmse is 1.19, std is 0.0505, the null model rmse is 1.22, std = 0. Thus, the model seems to perform the same as the tree model above.
+
+
+################ random forest model ###############
+cores <- parallel::detectCores()
+cores
+
+rf_mod <- 
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
+  set_engine("ranger", num.threads = cores) %>% 
+  set_mode("regression")
+
+rf_workflow <- 
+  workflow() %>% 
+  add_model(rf_mod) %>% 
+  add_recipe(data_rec)
+
+set.seed(123)
+rf_res <- 
+  rf_workflow %>% 
+  tune_grid(resamples = cv_folds,
+            grid = 25,
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(rmse))
+
+c = rf_res %>% collect_metrics()
+rf_res %>% autoplot()
+
+best_rf <- rf_res %>% select_best("rmse")
+
+best_rf
+
+final_wf_rf <- rf_workflow %>% finalize_workflow(best_rf)
+
+final_fit_rf <- final_wf_rf %>% fit(train_data) 
+
+df_rf <- final_fit_rf %>% augment(train_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
+df_rf$id <- seq.int(nrow(df_rf))
+ggplot() + geom_smooth(data = df_rf, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df_rf, aes(x = id, y = .pred), color = "red")
+# blue curve is the actual, red curve is predicted
+
+ggplot(df_rf, aes(x = id, y = residue)) + geom_point()
+# residue plots, clearly shows a pattern, which is not good
+
+c = c %>% filter(.metric=="rmse") %>% arrange(mean)
+c
+# best model rmse is 1.19, std is 0.0514, the null model rmse is 1.22, std = 0. Thus, the model seems to perform the same as the two models above.
+
+############### Model Selection #################
+
+# It looks like the 3 models have the same rmse values, and also similar std. I do not know which model tends to overfit more, I will randomly pick one. 
+
+
+################ Final Fit ################
+# I picked random forest model
+
+last_fit <- final_wf_rf %>% fit(test_data) 
+df_rf_last <- last_fit %>% augment(test_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
+df_rf_last$id <- seq.int(nrow(df_rf_last))
+
+ggplot() + geom_smooth(data = df_rf_last, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df_rf_last, aes(x = id, y = .pred), color = "red")
+# blue curve is the actual, red curve is predicted
+
+ggplot(df_rf_last, aes(x = id, y = residue)) + geom_point()
+df_rf_last %>% rmse(truth=BodyTemp,.pred)
+# final rmse is 1.12, much better than the training sets
+
+```
+
+

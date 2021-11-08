@@ -1,7 +1,7 @@
 ---
-title: "Example Manuscript Template for a Data Analysis Project"
+title: "Salary Prediction by Machine Learning"
 subtitle: ""
-author: Andreas Handel
+author: Zhihan Xian
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 documentclass: article
@@ -15,8 +15,6 @@ bibliography: ../references.bib
 csl: ../apa.csl
 ---
 
-The structure below is a possible setup for a data analysis project (including the course project). For a manuscript, adjust as needed.
-
 
 # Summary/Abstract
 _Write a summary of your project._
@@ -24,27 +22,35 @@ _Write a summary of your project._
 
 # Introduction 
 
-## General Background Information
-_Provide enough background on your topic that others can understand the why and how of your analysis_ 
+The dataset I obtained is about jobs and salaries. The dataset contains variables including: 
+- age group
+- industry
+- job title
+- salary
+- country
+- state
+- years of professional experience
+- total years of experience
+- education level
+- gender
+- race
 
-## Description of data and data source
-_Describe what the data is, what it contains, where it is from, etc. Eventually this might be part of a methods section._
+Most variables are categorical variables. Some of them are ordinal, such as age group, years of experience, which are categorical in nature but also have comparative order. The only numeric data is the outcome of interest, which is salary.
+
+dataset source: https://oscarbaruffa.com/messy/
 
 ## Questions/Hypotheses to be addressed
-_State the research questions you plan to answer with this analysis._
 
+- Is it possible to predict a job's salary based on the variables mentioned above?
+- What are the major determinants of a job's salary? Is there a good model summarizing the dataset?
 
 
 # Methods and Results
 
 _In most research papers, results and methods are separate. You can combine them here if you find it easier. You are also welcome to structure things such that those are separate sections._
 
-
-## Data aquisition
-_As applicable, explain where and how you got the data. If you directly import the data from an online source, you can combine this section with the next._
-
 ## Data import and cleaning
-_Write code that reads in the file and cleans it so it's ready for analysis. Since this will be fairly long code for most datasets, it might be a good idea to have it in one or several R scripts. If that is the case, explain here briefly what kind of cleaning/processing you do, and provide more details and well documented code somewhere (e.g. as supplement in a paper). All materials, including files that contain code, should be commented well so everyone can follow along._
+See processingscript.R file in code/processingz-code directory. Briefly, after loaded the data from the xls file, data related to United States were extracted (Country = US and Currency = USD). Then, since very few rows contains NA entry, these rows are removed from the dataset. Then, for each variable, I did some plotting to see its structure. Most of them only contains a few entry types and are ready to go, while some variables contain messy text entries that have to be cleaned up. For the industry column, I picked the top 20 industries since only top 20 industries have enough datapoints for model training and testing. For the job title text entry, it is too messy to clean up since people may call a same position with different names. Therefore, this variable is dropped. I filtered out observations where salary values are less than $10,000, since it is very unlikely. For the variable race, around 95% of entry are white. Since this variable has little variation, it is dropped from the analysis too. 
 
 
 ## Exploratory analysis
@@ -55,6 +61,9 @@ _Continue by creating plots or tables of the outcome(s) of interest and the pred
 
 _To get some further insight into your data, if reasonable you could compute simple statistics (e.g. t-tests, simple regression model with 1 predictor, etc.) to look for associations between your outcome(s) and each individual predictor variable. Though note that unless you pre-specified the outcome and main exposure, any "p<0.05 means statistical significance" interpretation is not valid._
 
+
+
+
 Table \@ref(tab:summarytable) shows a table summarizing the data.
 
 
@@ -63,12 +72,14 @@ resulttable=readRDS("../../results/summarytable.rds")
 knitr::kable(resulttable, caption = 'Data summary table.')
 ```
 
+Figure \@ref(fig:resultfigure1) shows the messy data structure for the variable Industry.
 
-Figure \@ref(fig:resultfigure) shows a scatterplot figure produced by one of the R scripts.
-
-```{r resultfigure,  fig.cap='Analysis figure.', echo=FALSE}
+```{r resultfigure1,  fig.cap='Analysis figure.', echo=FALSE}
 knitr::include_graphics("../../results/resultfigure.png")
 ```
+
+
+
 
 
 ## Full analysis
