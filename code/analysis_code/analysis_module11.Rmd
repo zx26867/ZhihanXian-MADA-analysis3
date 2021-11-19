@@ -103,7 +103,7 @@ final_fit <- final_wf %>% fit(train_data)
 
 df <- final_fit %>% augment(train_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
 df$id <- seq.int(nrow(df))
-ggplot() + geom_smooth(data = df, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df, aes(x = id, y = .pred), color = "red")
+ggplot() + geom_point(data = df, aes(x = id, y = BodyTemp), color = "blue") + geom_point(data = df, aes(x = id, y = .pred), color = "red")
 # blue curve is the actual, red curve is predicted
 
 ggplot(df, aes(x = id, y = residue)) + geom_point()
@@ -142,7 +142,7 @@ final_fit_lr <- final_wf_lr %>% fit(train_data)
 
 df_lr <- final_fit_lr %>% augment(train_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
 df_lr$id <- seq.int(nrow(df_lr))
-ggplot() + geom_smooth(data = df_lr, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df_lr, aes(x = id, y = .pred), color = "red")
+ggplot() + geom_point(data = df_lr, aes(x = id, y = BodyTemp), color = "blue") + geom_point(data = df_lr, aes(x = id, y = .pred), color = "red")
 # blue curve is the actual, red curve is predicted
 
 ggplot(df_lr, aes(x = id, y = residue)) + geom_point()
@@ -188,7 +188,7 @@ final_fit_rf <- final_wf_rf %>% fit(train_data)
 
 df_rf <- final_fit_rf %>% augment(train_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
 df_rf$id <- seq.int(nrow(df_rf))
-ggplot() + geom_smooth(data = df_rf, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df_rf, aes(x = id, y = .pred), color = "red")
+ggplot() + geom_point(data = df_rf, aes(x = id, y = BodyTemp), color = "blue") + geom_point(data = df_rf, aes(x = id, y = .pred), color = "red")
 # blue curve is the actual, red curve is predicted
 
 ggplot(df_rf, aes(x = id, y = residue)) + geom_point()
@@ -210,7 +210,7 @@ last_fit <- final_wf_rf %>% fit(test_data)
 df_rf_last <- last_fit %>% augment(test_data) %>% select(.pred, BodyTemp) %>% mutate(residue = BodyTemp - .pred)
 df_rf_last$id <- seq.int(nrow(df_rf_last))
 
-ggplot() + geom_smooth(data = df_rf_last, aes(x = id, y = BodyTemp), color = "blue") + geom_smooth(data = df_rf_last, aes(x = id, y = .pred), color = "red")
+ggplot() + geom_point(data = df_rf_last, aes(x = id, y = BodyTemp), color = "blue") + geom_point(data = df_rf_last, aes(x = id, y = .pred), color = "red")
 # blue curve is the actual, red curve is predicted
 
 ggplot(df_rf_last, aes(x = id, y = residue)) + geom_point()
