@@ -73,7 +73,7 @@ tree_grid
 #tree_grid %>% count(tree_depth)
 
 set.seed(123)
-cv_folds <- vfold_cv(train_data)
+#cv_folds <- vfold_cv(train_data)
 
 set.seed(123)
 
@@ -84,7 +84,7 @@ tree_wf <- workflow() %>%
 tree_res <- 
   tree_wf %>% 
   tune_grid(
-    resamples = cv_folds,
+    resamples = folds,
     grid = tree_grid
     )
 
@@ -111,7 +111,7 @@ ggplot(df, aes(x = id, y = residue)) + geom_point()
 
 a = a %>% filter(.metric=="rmse") %>% arrange(mean)
 a
-# best model rmse is 1.19, std is 0.0498, the null model rmse is 1.22, std = 0. Thus, the model is not that useful.
+# best model rmse is 1.21, std is 0.0258, the null model rmse is 1.22, std = 0. Thus, the model is not that useful.
 
 
 ############# LASSO model ##############
@@ -124,7 +124,7 @@ lr_reg_grid <- tibble(penalty = 10^seq(-4, -1, length.out = 30))
 
 lr_res <- 
   lr_workflow %>% 
-  tune_grid(resamples = cv_folds,
+  tune_grid(resamples = folds,
             grid = lr_reg_grid,
             control = control_grid(save_pred = TRUE),
             metrics = metric_set(rmse))
@@ -150,7 +150,7 @@ ggplot(df_lr, aes(x = id, y = residue)) + geom_point()
 
 b = b %>% filter(.metric=="rmse") %>% arrange(mean)
 b
-# best model rmse is 1.19, std is 0.0505, the null model rmse is 1.22, std = 0. Thus, the model seems to perform the same as the tree model above.
+# best model rmse is 1.19, std is 0.0258, the null model rmse is 1.22, std = 0. Thus, the model seems to perform the same as the tree model above.
 
 
 ################ random forest model ###############
@@ -170,7 +170,7 @@ rf_workflow <-
 set.seed(123)
 rf_res <- 
   rf_workflow %>% 
-  tune_grid(resamples = cv_folds,
+  tune_grid(resamples = folds,
             grid = 25,
             control = control_grid(save_pred = TRUE),
             metrics = metric_set(rmse))
@@ -196,11 +196,11 @@ ggplot(df_rf, aes(x = id, y = residue)) + geom_point()
 
 c = c %>% filter(.metric=="rmse") %>% arrange(mean)
 c
-# best model rmse is 1.19, std is 0.0514, the null model rmse is 1.22, std = 0. Thus, the model seems to perform the same as the two models above.
+# best model rmse is 1.20, std is 0.0258, the null model rmse is 1.22, std = 0. Thus, the model seems to perform the same as the two models above.
 
 ############### Model Selection #################
 
-# It looks like the 3 models have the same rmse values, and also similar std. I do not know which model tends to overfit more, I will randomly pick one. 
+# It looks like the 3 models have the similar rmse values, and also same std. I do not know which model tends to overfit more, I will randomly pick one. 
 
 
 ################ Final Fit ################
